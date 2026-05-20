@@ -50,5 +50,6 @@ tableTest=as.data.frame(tableTest)
 names(tableTest)=c("model","link","n","RMSE","CR","bG","b1","b2",
                                       "RMSE","CR","bG","b1","b2","b3")
 tableTest
-write.csv(tableTest,file="tableTestPower.csv",row.names=FALSE)
+if (!dir.exists("inst/extdata")) dir.create("inst/extdata", recursive = TRUE)
+write.csv(tableTest, file = "inst/extdata/tableTestPower.csv", row.names = FALSE)
 
