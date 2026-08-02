@@ -36,6 +36,7 @@
 #' # Predict at new covariate values
 #' predict(fit, newdata = data.frame(x = c(0.1, 0.5, 0.9)))
 #'
+#' @name predict
 #' @importFrom stats delete.response model.frame model.matrix predict
 #' @export
 predict.regcorr <- function(object, newdata = NULL, ...) {
