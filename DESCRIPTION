@@ -21,6 +21,7 @@ Authors@R:
              family = "Xu",
              email = "jxu@stat.ecnu.edu.cn",
              role = "aut"))
+Maintainer: Ze Lin <zlin5858@163.com>
 Description: Regression models to assess the effect of covariates on the
     Pearson correlation coefficient for bivariate normal and bivariate
     binary responses.  The package provides likelihood-based inference
