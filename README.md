@@ -8,6 +8,8 @@ This package replicates and robustly extends the methodologies for likelihood-ba
 * **Ze Lin**
 * **Bo Li**
 * **Jinyao Shen**
+* **Jiangyan Zhao**
+* **Jin Xu**
 
 ## ✨ Key Features
 * **Bivariate Normal Responses:** Models the Fisher z-transformed correlation (hyperbolic tangent link) against linear combinations of covariates.
@@ -16,18 +18,20 @@ This package replicates and robustly extends the methodologies for likelihood-ba
 
 ## 📥 Installation
 
-You can install the development version of `regcorr` directly from GitHub:
+`regcorr` is available on CRAN, and the development version can be installed from GitHub:
 
-```{r}
-# Install devtools if you haven't already
+```r
+# CRAN release
+install.packages("regcorr")
+
+# Development version from GitHub
 # install.packages("devtools")
-
 devtools::install_github("lonze-nb/regcorr")
 ```
 
 ## 🚀 Quick Start (Usage)
 Here is a basic example of fitting the correlation regression model with the unified `regcorr()` function:
-```{r}
+```r
 library(regcorr)
 
 # 1. Generate simulated bivariate normal data (n = 500)
@@ -52,6 +56,4 @@ For bivariate binary responses (both columns 0/1), `regcorr()` selects the
 binary model automatically; set `type = "binary"` to force it.
 
 ## 📖 References
-This package is built based on the statistical framework proposed in related literature regarding regression models of Pearson correlation coefficients.
-
-Dufera, A. G., Liu, T., & Xu, J. (2023). Regression models of Pearson correlation coefficient. Statistical Theory and Related Fields, 7(2), 97-106.
+Dufera, A. G., Liu, T., & Xu, J. (2023). Regression models of Pearson correlation coefficient. *Statistical Theory and Related Fields*, 7(2), 97-106. https://doi.org/10.1080/24754269.2023.2164970
