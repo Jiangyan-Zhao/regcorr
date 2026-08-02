@@ -1,12 +1,39 @@
 Package: regcorr
 Type: Package
-Title: Models of Pearson Correlation Coefficient
+Title: Regression Models of the Pearson Correlation Coefficient
 Version: 0.1.1
-Author: Ze Lin, Bo Li, Jinyao Shen
-Maintainer: Ze Lin <zlin5858@163.com>
-Description: Implements regression models to assess the effect of covariates on the Pearson correlation coefficient for both bivariate normal and bivariate binary responses. This package provides likelihood-based inference using Newton-Raphson estimation and bootstrap-based methods for significance testing, featuring built-in robust handling for numerical instabilities in extreme samples.
+Authors@R:
+    c(person(given = "Ze",
+             family = "Lin",
+             email = "zlin5858@163.com",
+             role = c("aut", "cre")),
+      person(given = "Bo",
+             family = "Li",
+             role = "aut"),
+      person(given = "Jinyao",
+             family = "Shen",
+             role = "aut"),
+      person(given = "Jiangyan",
+             family = "Zhao",
+             email = "zhaojy2017@126.com",
+             role = "aut"),
+      person(given = "Jin",
+             family = "Xu",
+             email = "jxu@stat.ecnu.edu.cn",
+             role = "aut"))
+Description: Regression models to assess the effect of covariates on the
+    Pearson correlation coefficient for bivariate normal and bivariate
+    binary responses.  The package provides likelihood-based inference
+    using Newton-Raphson estimation and bootstrap-based significance
+    testing, with robust handling of numerical instabilities in extreme
+    samples.
+License: GPL (>= 3)
+URL: https://github.com/lonze-nb/regcorr
+BugReports: https://github.com/lonze-nb/regcorr/issues
 Encoding: UTF-8
-LazyData: true
+Depends: R (>= 4.1.0)
+Imports:
+    grDevices,
+    graphics,
+    stats
 Config/roxygen2/version: 8.0.0
-License: MIT + file LICENSE
-RoxygenNote: 7.3.2
