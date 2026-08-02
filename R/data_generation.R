@@ -8,7 +8,6 @@
 #' @param link Link function indicator ("1" = logistic; "2" = tanh).
 #' @return A list containing X, Y, and rho.
 #' @importFrom stats runif rnorm
-#' @export
 genDataBN <- function(numSample, p, betaTrue, eta1True, eta2True, link) {
   X = cbind(rep(1,numSample), matrix(runif(numSample*p), numSample))
   switch(link,
@@ -33,7 +32,6 @@ genDataBN <- function(numSample, p, betaTrue, eta1True, eta2True, link) {
 #' @param link Link function indicator ("1" = logistic; "2" = tanh).
 #' @return A list containing X, Y, and rho.
 #' @importFrom stats runif
-#' @export
 genDataBB <- function(numSample, p, betaTrue, eta1True, eta2True, link) {
   X = cbind(rep(1,numSample), matrix(runif(numSample*p), numSample))
   switch(link,

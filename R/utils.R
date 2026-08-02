@@ -2,7 +2,6 @@
 #'
 #' @param x A numeric vector.
 #' @return The calculated logistic probability.
-#' @export
 logistic <- function(x){
   return(1/(1+exp(-x)))
 }
@@ -14,7 +13,6 @@ logistic <- function(x){
 #' @param rho Correlation of bivariate variables.
 #' @return n by 2 matrix of generated binary variables.
 #' @importFrom stats rbinom
-#' @export
 rbinary <- function(n, p, rho) {
 
   b = rho * sqrt(p[2]*(1-p[2])/p[1]/(1-p[1]))

@@ -21,26 +21,7 @@
 #'   \item{power}{Estimated testing power.}
 #' }
 #'
-#' @examples
-#' set.seed(123)
-#'
-#' res <- subRoutineTest(
-#'   numSample = 20,
-#'   p = 1,
-#'   link = "1",
-#'   model = "1",
-#'   betaTrue = c(0.2, 0.1),
-#'   betaIni = c(0, 0),
-#'   eta1True = c(0, 0),
-#'   eta2True = c(0, 0),
-#'   numSimu = 1,
-#'   numBoot = 5
-#' )
-#'
-#' names(res)
-#'
 #' @importFrom stats pchisq pnorm cov
-#' @export
 subRoutineTest <- function(numSample, p, link, model,
                            betaTrue, betaIni,
                            eta1True, eta2True,

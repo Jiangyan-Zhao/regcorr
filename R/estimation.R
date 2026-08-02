@@ -5,8 +5,7 @@
 #' @param betaIni Initial estimate of beta.
 #' @param link Indicator of link function ("1" = logistic, "2" = tanh).
 #' @return A list containing betaCurrent, numIter, and restart.
-#' @importFrom stats lm runif
-#' @export
+#' @importFrom stats lm.fit
 NRfitBivNormal <- function(Y,X,betaIni,link)
 {
   # return new estimate of beta using Newton Raphson method
@@ -23,14 +22,14 @@ NRfitBivNormal <- function(Y,X,betaIni,link)
 
   TOL=0.01
 
-  residual=lm(Y~X[,-1])$residuals      # residuals of linear reg.
+  residual = lm.fit(X, Y)$residuals    # residuals of linear reg. on the full design matrix
   sigmaHat=sqrt(colMeans(residual^2))  # std of y1 and y2, 1 by 2
   Ytilde=residual%*%diag(1/sigmaHat)   # (y-muHat)/sigma, n by 2
   T1=rowSums(Ytilde^2)                 # n by 1
   T2=apply(Ytilde,1,prod)              # n by 1
 
   # initial beta
-  betaPrev=rep(0,p)   # dummy start
+  betaPrev = betaIni + 1  # dummy start, guaranteed to differ from betaIni
   betaCurrent=betaIni
   numIter=0
   restart=0
@@ -74,7 +73,7 @@ NRfitBivNormal <- function(Y,X,betaIni,link)
     # print(eigen(H))
 
     if (any(is.na(betaCurrent)) || any(is.na(H)) || any(is.infinite(H)) || sqrt(sum(betaCurrent^2))>10 || kappa(H)>10000 ){ # ill posed matrix
-      betaPrev=runif(p); betaCurrent=betaIni; numIter=1
+      betaPrev = betaIni + 1; betaCurrent = betaIni; numIter = 1
       restart=restart+1
     } else {                                            # regular matrix
       invH=solve(H)                                     # p by p, inverse Hessian
@@ -94,8 +93,7 @@ NRfitBivNormal <- function(Y,X,betaIni,link)
 #' @param beta0 Initial estimate of beta.
 #' @param link Indicator of link function ("1" = logistic, "2" = tanh).
 #' @return A list containing betaCurrent, numIter, and restart.
-#' @importFrom stats glm binomial runif
-#' @export
+#' @importFrom stats glm.fit binomial
 NRfitBivBernoulli <- function(Y,X,beta0,link)
 {
   # return new estimate of beta using Newton Raphson method
@@ -111,18 +109,9 @@ NRfitBivBernoulli <- function(Y,X,beta0,link)
   n = nrow(Y)
   TOL=0.01
 
-  # get marginal pHat
-  switch(p-1, # num of covariates
-         "1" = {  eta1Hat <- as.matrix(glm(Y[,1] ~ X[,2],family = binomial(link="logit"))$coefficients,ncol=1)
-         eta2Hat <- as.matrix(glm(Y[,2] ~ X[,2],family = binomial(link="logit"))$coefficients,ncol=1)
-         },
-         "2" = {  eta1Hat <- as.matrix(glm(Y[,1] ~ X[,2]+X[,3],family = binomial(link="logit"))$coefficients,ncol=1)
-         eta2Hat <- as.matrix(glm(Y[,2] ~ X[,2]+X[,3],family = binomial(link="logit"))$coefficients,ncol=1)
-         },
-         "3" = {  eta1Hat <- as.matrix(glm(Y[,1] ~ X[,2]+X[,3]+X[,4],family = binomial(link="logit"))$coefficients,ncol=1)
-         eta2Hat <- as.matrix(glm(Y[,2] ~ X[,2]+X[,3]+X[,4],family = binomial(link="logit"))$coefficients,ncol=1)
-         }
-  ) # end of switch
+  # get marginal pHat via logistic regressions on the full design matrix
+  eta1Hat <- glm.fit(X, Y[, 1], family = binomial(link = "logit"))$coefficients
+  eta2Hat <- glm.fit(X, Y[, 2], family = binomial(link = "logit"))$coefficients
 
   p1Hat=as.matrix(logistic(X%*%eta1Hat),ncol=1)  # marginal est of success prob for y1, numSample by 1
   p2Hat=as.matrix(logistic(X%*%eta2Hat),ncol=1)  # marginal est of success prob for y2, numSample by 1
@@ -142,7 +131,7 @@ NRfitBivBernoulli <- function(Y,X,beta0,link)
   d10=d01=-d11
 
   # initial beta
-  betaPrev=runif(p)     # dummy start
+  betaPrev = beta0 + 1  # dummy start, guaranteed to differ from beta0
   betaCurrent=beta0
   restart=numIter=0
 
@@ -184,7 +173,7 @@ NRfitBivBernoulli <- function(Y,X,beta0,link)
     H=t(X) %*% diag(as.vector(w)) %*% X                   # p by p
 
     if (any(is.na(betaCurrent)) || any(is.na(H)) || any(is.infinite(H)) || sqrt(sum(betaCurrent^2))>10 || kappa(H)>10000 ) { # ill posed matrix
-      betaPrev=runif(p); betaCurrent=beta0; numIter=1
+      betaPrev = beta0 + 1; betaCurrent = beta0; numIter = 1
       restart=restart+1
     } else {                                          # regular matrix
       invH=solve(H)                                     # p by p, inverse Hessian
