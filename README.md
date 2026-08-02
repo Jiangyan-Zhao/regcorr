@@ -26,31 +26,30 @@ devtools::install_github("lonze-nb/regcorr")
 ```
 
 ## 🚀 Quick Start (Usage)
-Here is a basic example of generating bivariate normal data and fitting the correlation regression model:
+Here is a basic example of fitting the correlation regression model with the unified `regcorr()` function:
 ```{r}
 library(regcorr)
 
-# 1. Set true parameters for simulation
-true_beta <- c(0.25, 1, 0) # Intercept and two covariates
-true_eta <- c(0, 0, 0)
-
-# 2. Generate simulated Bivariate Normal data (n = 500)
+# 1. Generate simulated bivariate normal data (n = 500)
 set.seed(123)
-my_data <- genDataBN(numSample = 500, p = 2, 
-                     betaTrue = true_beta, 
-                     eta1True = true_eta, 
-                     eta2True = true_eta, 
-                     link = "1") # 1: logistic link, 2: tanh link
+n <- 500
+x <- runif(n)
+rho <- plogis(0.25 + 1 * x)              # logistic link for the correlation
+z1 <- rnorm(n)
+y1 <- z1
+y2 <- z1 * rho + rnorm(n) * sqrt(1 - rho^2)
+dat <- data.frame(y1 = y1, y2 = y2, x = x)
 
-# 3. Fit the model using Newton-Raphson iteration
-fit_result <- NRfitBivNormal(Y = my_data$Y, X = my_data$X, 
-                             betaIni = c(0.25, 0, 0), 
-                             link = "1")
+# 2. Fit the model (non-0/1 response is detected as "normal" automatically)
+fit <- regcorr(cbind(y1, y2) ~ x, data = dat, nboot = 100)
 
-# 4. View the estimated parameters and number of iterations
-print(fit_result$betaCurrent)
-print(fit_result$numIter)
+# 3. View results
+print(fit)
+summary(fit)
 ```
+
+For bivariate binary responses (both columns 0/1), `regcorr()` selects the
+binary model automatically; set `type = "binary"` to force it.
 
 ## 📖 References
 This package is built based on the statistical framework proposed in related literature regarding regression models of Pearson correlation coefficients.

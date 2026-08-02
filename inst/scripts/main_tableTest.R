@@ -27,7 +27,7 @@ for (iModel in 2:2){   # 1: biv normal; 2:biv Bernoulli
 
       res_model_link_p=NULL        # clear storage
       for (iNumSample in cSample){ # results under fixed model, link and p
-          res=subRoutineTest(iNumSample,iCova,iLink,iModel,
+          res=regcorr:::subRoutineTest(iNumSample,iCova,iLink,iModel,
                              betaTrue,betaIni,eta1True,eta2True,numSimu,numBoot)
           res_model_link_p=rbind(res_model_link_p, # collect over numSample
                                  c(res$RMSE,         # RMSE
