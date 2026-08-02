@@ -1,3 +1,14 @@
+#' @examples
+#' set.seed(123)
+#' dat <- genDataBB(
+#'   numSample = 20,
+#'   p = 2,
+#'   betaTrue = c(0.2, 0, 0),
+#'   eta1True = c(0, 0, 0),
+#'   eta2True = c(0, 0, 0),
+#'   link = "1"
+#' )
+#' names(dat)
 genDataBB<-function(numSample,p,betaTrue,eta1True,eta2True,link)
 { # return data generated from biv Bernoulli
 
