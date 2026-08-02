@@ -37,6 +37,7 @@
 #' fit <- regcorr(cbind(y1, y2) ~ x, data = data.frame(y1, y2, x), nboot = 20)
 #' summary(fit)
 #'
+#' @name summary
 #' @export
 summary.regcorr <- function(object, ...) {
   se <- sqrt(diag(object$vcov))

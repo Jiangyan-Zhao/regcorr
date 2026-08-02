@@ -25,6 +25,7 @@
 #' fit <- regcorr(cbind(y1, y2) ~ x, data = data.frame(y1, y2, x), nboot = 20)
 #' vcov(fit)
 #'
+#' @name vcov
 #' @importFrom stats vcov
 #' @export
 vcov.regcorr <- function(object, ...) {

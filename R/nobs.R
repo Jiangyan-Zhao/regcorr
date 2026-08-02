@@ -20,6 +20,7 @@
 #' fit <- regcorr(cbind(y1, y2) ~ x, data = data.frame(y1, y2, x), nboot = 20)
 #' nobs(fit)
 #'
+#' @name nobs
 #' @importFrom stats nobs
 #' @export
 nobs.regcorr <- function(object, ...) {

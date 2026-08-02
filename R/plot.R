@@ -30,6 +30,7 @@
 #' plot(fit)
 #' plot(fit, which = 2)
 #'
+#' @name plot
 #' @importFrom graphics plot abline points
 #' @importFrom grDevices adjustcolor
 #' @export
