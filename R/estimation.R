@@ -86,6 +86,32 @@ NRfitBivNormal <- function(Y,X,betaIni,link)
   return(result=list(betaCurrent=betaCurrent,numIter=numIter,restart=restart))
 }
 
+#' Score and Hessian weights for one cell of the bivariate Bernoulli likelihood
+#'
+#' For a cell with log-probability log(c + d*rho), rho = h(eta), returns the
+#' score weight e = d*h'(eta)/(c + d*rho) and the Hessian weight
+#' f = -d^2*(h'(eta))^2/(c + d*rho)^2 + d*h''(eta)/(c + d*rho).
+#'
+#' @param c Cell probability offset (vector).
+#' @param d Cell probability slope in rho (vector).
+#' @param rho Link-transformed correlation h(eta) (vector).
+#' @param link Link function indicator (logistic or tanh).
+#' @noRd
+.bernoulli_derivatives <- function(c, d, rho, link) {
+  if (link == "1") {                    # logistic link
+    hp  <- rho * (1 - rho)              # h'(eta) = rho*(1-rho)
+    hpp <- rho * (1 - rho) * (1 - 2*rho)  # h''(eta)
+  } else {                              # tanh link
+    hp  <- 1 - rho^2                    # h'(eta) = 1 - rho^2
+    hpp <- -2 * rho * (1 - rho^2)       # h''(eta)
+  }
+  denom <- c + d * rho
+  list(
+    score_weight   = d * hp / denom,
+    hessian_weight = -d^2 * hp^2 / denom^2 + d * hpp / denom
+  )
+}
+
 #' Estimate beta for Bivariate Bernoulli responses using Newton Raphson
 #'
 #' @param Y n by 2 matrix, paired responses.
@@ -94,7 +120,7 @@ NRfitBivNormal <- function(Y,X,betaIni,link)
 #' @param link Indicator of link function ("1" = logistic, "2" = tanh).
 #' @return A list containing betaCurrent, numIter, and restart.
 #' @importFrom stats glm.fit binomial
-NRfitBivBernoulli <- function(Y,X,beta0,link)
+NRfitBivBernoulli <- function(Y, X, beta0, link)
 {
   # return new estimate of beta using Newton Raphson method
   #
@@ -143,27 +169,21 @@ NRfitBivBernoulli <- function(Y,X,beta0,link)
     switch(link,
            "1" = { # logistic link
              rho=logistic(X%*%betaCurrent)     # n by 1, corr. coef.
-             e00=d00*rho*(1-rho)/(c00+d00*rho) # n by 1
-             e01=d01*rho*(1-rho)/(c01+d01*rho) # n by 1
-             e10=d10*rho*(1-rho)/(c10+d10*rho) # n by 1
-             e11=d11*rho*(1-rho)/(c11+d11*rho) # n by 1
-             f00=(-d00^2+d00*(c00+d00*rho)*(1-2*rho))*rho^2*(1-rho)^2/(c00+d00*rho)^2 # n by 1
-             f01=(-d01^2+d01*(c01+d01*rho)*(1-2*rho))*rho^2*(1-rho)^2/(c01+d01*rho)^2 # n by 1
-             f10=(-d10^2+d10*(c10+d10*rho)*(1-2*rho))*rho^2*(1-rho)^2/(c10+d10*rho)^2 # n by 1
-             f11=(-d11^2+d11*(c11+d11*rho)*(1-2*rho))*rho^2*(1-rho)^2/(c11+d11*rho)^2 # n by 1
            },
            "2" = { # tanh link
              rho=tanh(X%*%betaCurrent)
-             e00=d00*(1+rho)*(1-rho)/(c00+d00*rho) # n by 1
-             e01=d01*(1+rho)*(1-rho)/(c01+d01*rho) # n by 1
-             e10=d10*(1+rho)*(1-rho)/(c10+d10*rho) # n by 1
-             e11=d11*(1+rho)*(1-rho)/(c11+d11*rho) # n by 1
-             f00=(-d00^2-d00*(c00+d00*rho)*2*rho)*(1+rho)^2*(1-rho)^2/(c00+d00*rho)^2 # n by 1
-             f01=(-d01^2-d01*(c01+d01*rho)*2*rho)*(1+rho)^2*(1-rho)^2/(c01+d01*rho)^2 # n by 1
-             f10=(-d10^2-d10*(c10+d10*rho)*2*rho)*(1+rho)^2*(1-rho)^2/(c10+d10*rho)^2 # n by 1
-             f11=(-d11^2-d11*(c11+d11*rho)*2*rho)*(1+rho)^2*(1-rho)^2/(c11+d11*rho)^2 # n by 1
            }
     ) # end of switch
+
+    # score and Hessian weights for each cell of log(c_ab + d_ab*rho)
+    a00 <- .bernoulli_derivatives(c00, d00, rho, link)
+    a01 <- .bernoulli_derivatives(c01, d01, rho, link)
+    a10 <- .bernoulli_derivatives(c10, d10, rho, link)
+    a11 <- .bernoulli_derivatives(c11, d11, rho, link)
+    e00 <- a00$score_weight;  f00 <- a00$hessian_weight
+    e01 <- a01$score_weight;  f01 <- a01$hessian_weight
+    e10 <- a10$score_weight;  f10 <- a10$hessian_weight
+    e11 <- a11$score_weight;  f11 <- a11$hessian_weight
 
     Z=I00*e00+I01*e01+I10*e10+I11*e11                     # n by 1
     score=t(X) %*% Z                                      # p by 1
