@@ -1,4 +1,5 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
-^LICENSE\.md$
 ^\.posit/assistant$
+^\.github$
+^Regression models of Pearson correlation coefficient\.pdf$

@@ -30,7 +30,7 @@ Description: Regression models to assess the effect of covariates on the
     samples.  The methodology is based on Dufera, Liu, and Xu (2023)
     "Regression models of Pearson correlation coefficient"
     <doi:10.1080/24754269.2023.2164970>.
-License: GPL (>= 3)
+License: GPL (>= 3) + file LICENSE
 URL: https://github.com/lonze-nb/regcorr
 BugReports: https://github.com/lonze-nb/regcorr/issues
 Encoding: UTF-8
