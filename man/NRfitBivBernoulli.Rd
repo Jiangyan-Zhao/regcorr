@@ -4,7 +4,7 @@
 \alias{NRfitBivBernoulli}
 \title{Estimate beta for Bivariate Bernoulli responses using Newton Raphson}
 \usage{
-NRfitBivBernoulli(Y, X, beta0, link)
+NRfitBivBernoulli(Y, X, beta0, link, warn = FALSE)
 }
 \arguments{
 \item{Y}{n by 2 matrix, paired responses.}
@@ -14,9 +14,14 @@ NRfitBivBernoulli(Y, X, beta0, link)
 \item{beta0}{Initial estimate of beta.}
 
 \item{link}{Indicator of link function ("1" = logistic, "2" = tanh).}
+
+\item{warn}{Whether to warn when the marginal logistic fits hit fitted
+probabilities at (or near) 0/1, indicating perfect or quasi-perfect
+separation. Suppressed during bootstrap replications.}
 }
 \value{
-A list containing betaCurrent, numIter, and restart.
+A list containing betaCurrent, numIter, restart, and converged
+  (whether the iterations converged within the iteration/restart limits).
 }
 \description{
 Estimate beta for Bivariate Bernoulli responses using Newton Raphson
