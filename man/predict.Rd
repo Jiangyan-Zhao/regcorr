@@ -17,7 +17,9 @@ correlations from the original data are returned.}
 \item{...}{Additional arguments (currently unused).}
 }
 \value{
-A numeric vector of predicted correlation coefficients.
+A numeric vector of predicted correlation coefficients, aligned
+  with the rows of \code{newdata}; rows with missing covariate values
+  return \code{NA}.
 }
 \description{
 Computes fitted or predicted Pearson correlation coefficients from a

@@ -23,6 +23,9 @@ An object of class \code{"summary.regcorr"} (a list) with
     \item{restart}{number of restarts used during optimization;}
     \item{link}{the link function used;}
     \item{nboot}{number of bootstrap replications;}
+    \item{nboot.valid}{number of bootstrap replications retained after
+      discarding non-converged fits;}
+    \item{converged}{whether the Newton-Raphson iterations converged;}
     \item{class}{the model class (\code{"regcorr_normal"} or
       \code{"regcorr_binary"}).}
   }

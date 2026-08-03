@@ -12,7 +12,9 @@
 #'   correlations from the original data are returned.
 #' @param ... Additional arguments (currently unused).
 #'
-#' @return A numeric vector of predicted correlation coefficients.
+#' @return A numeric vector of predicted correlation coefficients, aligned
+#'   with the rows of \code{newdata}; rows with missing covariate values
+#'   return \code{NA}.
 #'
 #' @seealso \code{\link{regcorr}} for model fitting;
 #'   \code{\link{fitted.regcorr}} for the fitted correlations of the
@@ -45,7 +47,8 @@ predict.regcorr <- function(object, newdata = NULL, ...) {
   }
 
   tt <- delete.response(object$terms)
-  mf <- model.frame(tt, newdata)
+  # keep incomplete rows so predictions align with newdata; they become NA
+  mf <- model.frame(tt, newdata, na.action = stats::na.pass)
   X_new <- model.matrix(tt, mf)
 
   link_code <- if (object$link %in% c("logistic", "1")) "1" else "2"
@@ -53,5 +56,6 @@ predict.regcorr <- function(object, newdata = NULL, ...) {
   pred_rho <- switch(link_code,
                      "1" = logistic(X_new %*% object$coefficients),
                      "2" = tanh(X_new %*% object$coefficients))
+  pred_rho[!stats::complete.cases(X_new)] <- NA
   return(as.vector(pred_rho))
 }

@@ -10,7 +10,8 @@ regcorr(
   type = c("auto", "normal", "binary"),
   link = c("logistic", "tanh", "1", "2"),
   init = NULL,
-  nboot = 100
+  nboot = 100,
+  na.action = getOption("na.action")
 )
 }
 \arguments{
@@ -30,12 +31,26 @@ Defaults to a vector of 0.1s.}
 \item{nboot}{Number of bootstrap replications used to estimate the
 variance-covariance matrix of the coefficients. Set to 0 to skip the
 bootstrap (the resulting \code{vcov} will contain \code{NA}).}
+
+\item{na.action}{A function (or quoted string) specifying how missing
+values in the data are handled; passed to
+\code{\link[stats]{model.frame}}. The default drops incomplete rows
+before fitting, and the dropped rows are recorded in the
+\code{na.action} component of the returned object. The fitting routine
+itself does not support missing values.}
 }
 \value{
 An object of class \code{"regcorr_normal"} or
   \code{"regcorr_binary"} (and \code{"regcorr"}), with S3 methods
   \code{print}, \code{summary}, \code{predict}, \code{coef}, \code{vcov},
-  \code{fitted}, \code{nobs}, and \code{plot}.
+  \code{fitted}, \code{nobs}, and \code{plot}. The object also contains
+  \itemize{
+    \item \code{converged}: whether the Newton-Raphson iterations
+      converged within the iteration/restart limits;
+    \item \code{na.action}: the \code{na.action} used (or \code{NULL});
+    \item \code{nboot.valid}: the number of bootstrap replications
+      retained after discarding non-converged fits.
+  }
 }
 \description{
 Fits a regression model for a covariate-dependent Pearson correlation

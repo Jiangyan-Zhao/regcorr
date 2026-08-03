@@ -16,7 +16,8 @@ NRfitBivNormal(Y, X, betaIni, link)
 \item{link}{Indicator of link function ("1" = logistic, "2" = tanh).}
 }
 \value{
-A list containing betaCurrent, numIter, and restart.
+A list containing betaCurrent, numIter, restart, and converged
+  (whether the iterations converged within the iteration/restart limits).
 }
 \description{
 Estimate beta for Bivariate Normal responses using Newton Raphson

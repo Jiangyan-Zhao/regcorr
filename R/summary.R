@@ -17,6 +17,9 @@
 #'     \item{restart}{number of restarts used during optimization;}
 #'     \item{link}{the link function used;}
 #'     \item{nboot}{number of bootstrap replications;}
+#'     \item{nboot.valid}{number of bootstrap replications retained after
+#'       discarding non-converged fits;}
+#'     \item{converged}{whether the Newton-Raphson iterations converged;}
 #'     \item{class}{the model class (\code{"regcorr_normal"} or
 #'       \code{"regcorr_binary"}).}
 #'   }
@@ -56,8 +59,10 @@ summary.regcorr <- function(object, ...) {
     coefficients = coef_matrix,
     numIter      = object$numIter,
     restart      = object$restart,
+    converged    = object$converged,
     link         = object$link,
     nboot        = object$nboot,
+    nboot.valid  = object$nboot.valid,
     class        = class(object)[1]
   )
   class(res) <- "summary.regcorr"

@@ -35,7 +35,8 @@ print.regcorr <- function(x, ...) {
   cat("\nCall:\n", paste(deparse(x$call), sep = "\n", collapse = "\n"), "\n\n", sep = "")
   cat("Coefficients (Correlation Link Beta):\n")
   print(x$coefficients)
-  cat("\nOptimization: Iterations =", x$numIter, "| Restarts =", x$restart, "\n")
+  cat("\nOptimization: Iterations =", x$numIter, "| Restarts =", x$restart,
+      if (isFALSE(x$converged)) "| NOT CONVERGED", "\n")
   invisible(x)
 }
 
@@ -45,12 +46,23 @@ print.summary.regcorr <- function(x, ...) {
   cat("\nCall:\n", paste(deparse(x$call), sep = "\n", collapse = "\n"), "\n\n", sep = "")
   cat("Model Type   :", x$class, "\n")
   cat("Link Function:", x$link, "\n")
-  cat("Bootstrap S.E. (nboot = ", x$nboot, ")\n\n", sep = "")
+  if (x$nboot > 0) {
+    cat("Bootstrap S.E. (nboot = ", x$nboot, sep = "")
+    if (!is.null(x$nboot.valid) && x$nboot.valid < x$nboot) {
+      cat(", valid = ", x$nboot.valid, ")", sep = "")
+    } else {
+      cat(")", sep = "")
+    }
+    cat("\n\n")
+  } else {
+    cat("Bootstrap S.E.: not computed (nboot = 0)\n\n")
+  }
 
   cat("Coefficients:\n")
   stats::printCoefmat(x$coefficients, P.values = TRUE, has.Pvalue = TRUE)
 
   cat("\n---")
-  cat("\nConvergence info: Iterations =", x$numIter, "| Restarts =", x$restart, "\n")
+  cat("\nConvergence info: Iterations =", x$numIter, "| Restarts =", x$restart,
+      "| Converged =", if (isTRUE(x$converged)) "TRUE" else "FALSE", "\n")
   invisible(x)
 }
