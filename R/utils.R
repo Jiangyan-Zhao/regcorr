@@ -18,6 +18,9 @@ rbinary <- function(n, p, rho) {
   b = rho * sqrt(p[2]*(1-p[2])/p[1]/(1-p[1]))
   Y = matrix(0, n, 2)
   Y[,1] = rbinom(n, 1, p[1])
-  Y[,2] = rbinom(n, 1, p[2] + b*(Y[,1]-p[1]))
+  # conditional success probability; clamp to [0,1] against floating-point
+  # violations of the feasible range
+  p2cond = pmin(pmax(p[2] + b*(Y[,1]-p[1]), 0), 1)
+  Y[,2] = rbinom(n, 1, p2cond)
   return(Y)
 }

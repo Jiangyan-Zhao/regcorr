@@ -29,7 +29,10 @@ subRoutineTest <- function(numSample, p, link, model,
 {
   # return powers of testing for significance of individual parameters
 
-  pval = matrix(0, numSimu, p + 2)       # global and individual p-values
+  # global and individual p-values; NA when a replication is not estimable
+  # (too few usable bootstrap replicates), so that power is computed over
+  # estimable replications only
+  pval = matrix(NA_real_, numSimu, p + 2)
   cBeta = matrix(0, numSimu, p + 1)      # storage for betaHat
   cConsistRate = matrix(0, numSimu, 1)   # storage for consistency rate
 
@@ -103,7 +106,7 @@ subRoutineTest <- function(numSample, p, link, model,
 
     ## (2) bootstrap
 
-    betaHatBoot = matrix(0, numBoot, p + 1)
+    betaHatBoot = matrix(NA_real_, numBoot, p + 1)
 
     for(iBoot in 1:numBoot){
 
@@ -116,36 +119,38 @@ subRoutineTest <- function(numSample, p, link, model,
       switch(model,
 
              "1" = {
-               betaHatBoot[iBoot, ] =
+               fitBoot =
                  NRfitBivNormal(
                    YBoot,
                    XBoot,
                    betaIni,
                    link
-                 )$betaCurrent
+                 )
              },
 
              "2" = {
-               betaHatBoot[iBoot, ] =
+               fitBoot =
                  NRfitBivBernoulli(
                    YBoot,
                    XBoot,
                    betaIni,
-                   link
-                 )$betaCurrent
+                   link,
+                   warn = FALSE
+                 )
              }
       )
+
+      # keep only converged replications; non-converged fits stay NA
+      if (isTRUE(fitBoot$converged)) {
+        betaHatBoot[iBoot, ] = fitBoot$betaCurrent
+      }
     }
 
-    badBoot =
-      which(
-        rowSums(
-          abs(
-            betaHatBoot -
-              matrix(betaIni, 1)[rep(1, numBoot), ]
-          )
-        ) < 0.01
-      )
+    # discard non-converged (NA) and no-movement replications
+    moved = rowSums(
+      abs(betaHatBoot - matrix(betaIni, 1)[rep(1, numBoot), ])
+    ) >= 0.01
+    badBoot = which(is.na(moved) | !moved)
 
     if(length(badBoot) > 0){
       betaHatBoot = betaHatBoot[-badBoot, , drop = FALSE]

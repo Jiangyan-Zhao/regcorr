@@ -41,9 +41,12 @@ genDataBB <- function(numSample, p, betaTrue, eta1True, eta2True, link) {
   p1 = as.matrix(logistic(X %*% eta1True), ncol=1)
   p2 = as.matrix(logistic(X %*% eta2True), ncol=1)
 
+  # feasible range of rho given the marginal probabilities, applied row-wise
+  # (Dufera et al., 2023, Section 6; Qaqish, 2003):
+  #   max(-psi1*psi2, -(psi1*psi2)^-1) <= rho <= min(psi1/psi2, psi2/psi1)
   psi1 = sqrt(p1/(1-p1)); psi2 = sqrt(p2/(1-p2))
-  validID = apply(cbind(-psi1*psi2, -1/(psi1*psi2)), 2, max) <= rho
-  validID = validID & rho <= apply(cbind(psi1/psi2, psi2/psi1), 2, min)
+  validID = pmax(-psi1*psi2, -1/(psi1*psi2)) <= rho &
+    rho <= pmin(psi1/psi2, psi2/psi1)
 
   p1 = p1[validID]; p2 = p2[validID]; rho = rho[validID]
   X = X[validID,]
