@@ -26,7 +26,8 @@ Computes fitted or predicted Pearson correlation coefficients from a
 fitted \code{regcorr} model. With \code{newdata = NULL} the fitted
 correlations for the training data are returned; otherwise the
 correlations are computed for the covariate values in \code{newdata}
-using the inverse of the model's link function.
+using the inverse of the model's link function. Prediction model matrices
+reuse the factor levels and contrasts recorded during fitting.
 }
 \examples{
 set.seed(123)
