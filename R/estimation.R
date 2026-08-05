@@ -76,8 +76,8 @@ NRfitBivNormal <- function(Y, X, betaIni, link)
       numIter <- 0
       betaCurrent <- betaIni + stats::rnorm(p, 0, 0.1)
     } else {                                           # regular matrix
-      invH <- solve(H)                                 # p by p, inverse Hessian
-      betaCurrent <- betaCurrent - invH %*% score      # update beta
+      step <- solve(H, score)
+      betaCurrent <- betaCurrent - step
       if (sum((betaCurrent - betaPrev)^2) <= TOL) {    # converged
         converged <- TRUE
         break
@@ -218,8 +218,8 @@ NRfitBivBernoulli <- function(Y, X, beta0, link, warn = FALSE)
       numIter <- 0
       betaCurrent <- beta0 + stats::rnorm(p, 0, 0.1)
     } else {                                             # regular matrix
-      invH <- solve(H)                                   # p by p, inverse Hessian
-      betaCurrent <- betaCurrent - invH %*% score        # update beta
+      step <- solve(H, score)
+      betaCurrent <- betaCurrent - step
       if (sum((betaCurrent - betaPrev)^2) <= TOL) {      # converged
         converged <- TRUE
         break
