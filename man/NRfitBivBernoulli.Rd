@@ -4,7 +4,14 @@
 \alias{NRfitBivBernoulli}
 \title{Estimate beta for Bivariate Bernoulli responses using Newton Raphson}
 \usage{
-NRfitBivBernoulli(Y, X, beta0, link, warn = FALSE)
+NRfitBivBernoulli(
+  Y,
+  X,
+  beta0,
+  link,
+  warn = FALSE,
+  control = regcorr_control()
+)
 }
 \arguments{
 \item{Y}{n by 2 matrix, paired responses.}
@@ -15,13 +22,13 @@ NRfitBivBernoulli(Y, X, beta0, link, warn = FALSE)
 
 \item{link}{Indicator of link function ("1" = logistic, "2" = tanh).}
 
-\item{warn}{Whether to warn when the marginal logistic fits hit fitted
-probabilities at (or near) 0/1, indicating perfect or quasi-perfect
-separation. Suppressed during bootstrap replications.}
+\item{warn}{Whether to warn when marginal logistic fits exhibit separation.}
+
+\item{control}{Numerical controls from \code{\link{regcorr_control}}.}
 }
 \value{
-A list containing betaCurrent, numIter, restart, and converged
-  (whether the iterations converged within the iteration/restart limits).
+A list containing the coefficient estimate, convergence status,
+  iteration diagnostics, final score norm, accepted step size, and message.
 }
 \description{
 Estimate beta for Bivariate Bernoulli responses using Newton Raphson

@@ -2,7 +2,7 @@
 
 The `regcorr` R package provides statistical tools to evaluate how covariates of interest influence the strength of the Pearson correlation coefficient between two responses. It supports both **continuous (bivariate normal)** and **bivariate binary (Bernoulli)** responses without requiring repeated measures.
 
-This package replicates and robustly extends the methodologies for likelihood-based inference using Newton-Raphson estimation and bootstrap-based significance testing. 
+This package implements the likelihood-based estimators of Dufera, Liu, and Xu (2023), with bootstrap-based inference and explicit numerical safeguards. The statistical likelihoods are unchanged from the paper.
 
 ## 👥 Authors
 * **Ze Lin**
@@ -12,9 +12,11 @@ This package replicates and robustly extends the methodologies for likelihood-ba
 * **Jin Xu**
 
 ## ✨ Key Features
-* **Bivariate Normal Responses:** Models the Fisher z-transformed correlation (hyperbolic tangent link) against linear combinations of covariates.
-* **Bivariate Binary Responses:** Models the correlation of dichotomous outcomes using a logistic link function.
-* **Algorithmic Robustness:** Implements short-circuit evaluation and `try-catch` mechanisms to handle the notorious "perfect separation" and numerical instabilities (e.g., Hessian matrix explosion, `NA/NaN` generation) inherent in small-sample bivariate Bernoulli distributions.
+* **Bivariate Normal Responses:** Models correlation using either the logistic link for positive correlations or the hyperbolic tangent link for correlations in `(-1, 1)`.
+* **Bivariate Binary Responses:** Uses the same two correlation links while retaining the Bernoulli likelihood and fitted marginal logistic models of Dufera et al. (2023).
+* **Safeguarded Newton Optimization:** Uses deterministic step-halving, finite-domain checks, Hessian condition-number checks, and convergence criteria based jointly on relative coefficient change and the final score norm. Random jitter restarts are not part of the routine optimization path.
+* **Explicit Bernoulli Feasibility:** Every candidate update must keep all four fitted joint probabilities strictly inside their numerical domain.
+* **Bootstrap Robustness:** Bootstrap inference remains the supported inference method. A failed or non-converged replicate is excluded rather than terminating the fit, and the returned object records valid, non-converged, and errored replicate counts.
 
 ## 📥 Installation
 
@@ -50,6 +52,17 @@ fit <- regcorr(cbind(y1, y2) ~ x, data = dat, nboot = 100)
 # 3. View results
 print(fit)
 summary(fit)
+```
+
+Numerical tolerances can be changed without altering existing calls:
+
+```r
+fit <- regcorr(
+  cbind(y1, y2) ~ x,
+  data = dat,
+  nboot = 100,
+  control = regcorr_control(maxit = 150, gradtol = 1e-7)
+)
 ```
 
 For bivariate binary responses (both columns 0/1), `regcorr()` selects the

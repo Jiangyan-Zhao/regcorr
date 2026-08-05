@@ -14,11 +14,19 @@
 #'     \item{coefficients}{a matrix with columns \code{Estimate},
 #'       \code{Std. Error}, \code{z value} and \code{Pr(>|z|)};}
 #'     \item{numIter}{number of Newton-Raphson iterations;}
-#'     \item{restart}{number of restarts used during optimization;}
+#'     \item{restart}{number of restarts used during optimization (zero for
+#'       the deterministic safeguarded optimizer);}
+#'     \item{gradient.norm}{maximum absolute component of the final score;}
+#'     \item{step.size}{size of the final accepted Newton step;}
+#'     \item{convergence.message}{optimizer convergence or failure reason;}
 #'     \item{link}{the link function used;}
 #'     \item{nboot}{number of bootstrap replications;}
 #'     \item{nboot.valid}{number of bootstrap replications retained after
-#'       discarding non-converged fits;}
+#'       discarding non-converged and errored fits;}
+#'     \item{nboot.failed}{number of invalid bootstrap replications;}
+#'     \item{nboot.nonconverged}{number of optimizer non-convergences;}
+#'     \item{nboot.errors}{number of bootstrap replications that raised an
+#'       error;}
 #'     \item{converged}{whether the Newton-Raphson iterations converged;}
 #'     \item{class}{the model class (\code{"regcorr_normal"} or
 #'       \code{"regcorr_binary"}).}
@@ -60,9 +68,18 @@ summary.regcorr <- function(object, ...) {
     numIter      = object$numIter,
     restart      = object$restart,
     converged    = object$converged,
+    gradient.norm = object$gradient.norm,
+    step.size    = object$step.size,
+    relative.change = object$relative.change,
+    convergence.message = object$convergence.message,
+    num.halving  = object$num.halving,
+    start.adjusted = object$start.adjusted,
     link         = object$link,
     nboot        = object$nboot,
     nboot.valid  = object$nboot.valid,
+    nboot.failed = object$nboot.failed,
+    nboot.nonconverged = object$nboot.nonconverged,
+    nboot.errors = object$nboot.errors,
     class        = class(object)[1]
   )
   class(res) <- "summary.regcorr"

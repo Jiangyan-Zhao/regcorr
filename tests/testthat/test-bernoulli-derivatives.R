@@ -21,47 +21,6 @@ cell_loglik <- function(eta, c, d, link) {
   log(c + d * rho)
 }
 
-num_deriv1 <- function(f, x, h = 1e-6) {
-  (f(x + h) - f(x - h)) / (2 * h)
-}
-
-num_deriv2 <- function(f, x, h = 1e-4) {
-  (f(x + h) - 2 * f(x) + f(x - h)) / h^2
-}
-
-num_grad <- function(f, x, h = 1e-6) {
-  vapply(seq_along(x), function(j) {
-    xp <- x
-    xm <- x
-    xp[j] <- x[j] + h
-    xm[j] <- x[j] - h
-    (f(xp) - f(xm)) / (2 * h)
-  }, numeric(1))
-}
-
-num_hess <- function(f, x, h = 1e-4) {
-  p <- length(x)
-  H <- matrix(0, p, p)
-  for (j in seq_len(p)) {
-    xp <- x
-    xm <- x
-    xp[j] <- x[j] + h
-    xm[j] <- x[j] - h
-    H[j, j] <- (f(xp) - 2 * f(x) + f(xm)) / h^2
-    if (j < p) {
-      for (k in (j + 1):p) {
-        xpp <- x; xpm <- x; xmp <- x; xmm <- x
-        xpp[j] <- x[j] + h; xpp[k] <- x[k] + h
-        xpm[j] <- x[j] + h; xpm[k] <- x[k] - h
-        xmp[j] <- x[j] - h; xmp[k] <- x[k] + h
-        xmm[j] <- x[j] - h; xmm[k] <- x[k] - h
-        H[j, k] <- H[k, j] <- (f(xpp) - f(xpm) - f(xmp) + f(xmm)) / (4 * h^2)
-      }
-    }
-  }
-  H
-}
-
 test_that("single-cell score and Hessian weights match numerical derivatives", {
   set.seed(7)
   for (link in c("1", "2")) {
@@ -73,8 +32,10 @@ test_that("single-cell score and Hessian weights match numerical derivatives", {
 
     deriv <- .bernoulli_derivatives(c, d, rho, link)
 
-    e_num <- num_deriv1(function(x) cell_loglik(x, c, d, link), eta)
-    f_num <- num_deriv2(function(x) cell_loglik(x, c, d, link), eta)
+    e_num <- central_derivative(function(x) cell_loglik(x, c, d, link), eta)
+    f_num <- central_second_derivative(
+      function(x) cell_loglik(x, c, d, link), eta
+    )
 
     expect_equal(deriv$score_weight, e_num, tolerance = 1e-6)
     expect_equal(deriv$hessian_weight, f_num, tolerance = 1e-4)
@@ -134,8 +95,8 @@ test_that("assembled Bernoulli score and Hessian match numerical derivatives of 
             I10 * log(c10 + d10 * rho_ll) + I11 * log(c11 + d11 * rho_ll))
     }
 
-    g_num <- num_grad(loglik, beta_true)
-    H_num <- num_hess(loglik, beta_true)
+    g_num <- central_gradient(loglik, beta_true)
+    H_num <- central_hessian(loglik, beta_true)
 
     expect_equal(g_analytic, g_num, tolerance = 1e-5)
     expect_equal(H_analytic, H_num, tolerance = 1e-3)

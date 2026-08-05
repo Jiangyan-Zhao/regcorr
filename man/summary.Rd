@@ -20,11 +20,19 @@ An object of class \code{"summary.regcorr"} (a list) with
     \item{coefficients}{a matrix with columns \code{Estimate},
       \code{Std. Error}, \code{z value} and \code{Pr(>|z|)};}
     \item{numIter}{number of Newton-Raphson iterations;}
-    \item{restart}{number of restarts used during optimization;}
+    \item{restart}{number of restarts used during optimization (zero for
+      the deterministic safeguarded optimizer);}
+    \item{gradient.norm}{maximum absolute component of the final score;}
+    \item{step.size}{size of the final accepted Newton step;}
+    \item{convergence.message}{optimizer convergence or failure reason;}
     \item{link}{the link function used;}
     \item{nboot}{number of bootstrap replications;}
     \item{nboot.valid}{number of bootstrap replications retained after
-      discarding non-converged fits;}
+      discarding non-converged and errored fits;}
+    \item{nboot.failed}{number of invalid bootstrap replications;}
+    \item{nboot.nonconverged}{number of optimizer non-convergences;}
+    \item{nboot.errors}{number of bootstrap replications that raised an
+      error;}
     \item{converged}{whether the Newton-Raphson iterations converged;}
     \item{class}{the model class (\code{"regcorr_normal"} or
       \code{"regcorr_binary"}).}
