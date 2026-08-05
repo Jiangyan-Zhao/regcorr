@@ -2,7 +2,7 @@
 % Please edit documentation in R/control.R
 \name{regcorr_control}
 \alias{regcorr_control}
-\title{Control Numerical Optimization in \code{regcorr}}
+\title{Control Numerical Optimization in `regcorr`}
 \usage{
 regcorr_control(
   maxit = 100L,
@@ -33,14 +33,16 @@ Larger values are treated as numerically ill-conditioned.}
 and bivariate Bernoulli joint-probability boundaries.}
 }
 \value{
-A list of class \code{"regcorr_control"}.
+A list of class `"regcorr_control"`.
 }
 \description{
 Creates a list of numerical controls for the safeguarded Newton optimizer
 used by \code{\link{regcorr}}. The defaults require both a small relative
-coefficient change and a small score norm before convergence is reported.
+coefficient
+change and a small score norm before convergence is reported.
 }
 \examples{
 ctrl <- regcorr_control(maxit = 150, gradtol = 1e-7)
 ctrl
+
 }

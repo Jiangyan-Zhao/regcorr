@@ -40,7 +40,8 @@ before fitting, and the dropped rows are recorded in the
 \code{na.action} component of the returned object. The fitting routine
 itself does not support missing values.}
 
-\item{control}{Numerical controls created by \code{\link{regcorr_control}}. A named
+\item{control}{Numerical controls created by
+\code{\link{regcorr_control}}. A named
 list containing a subset of those controls is also accepted.}
 }
 \value{

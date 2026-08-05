@@ -21,7 +21,8 @@ The argument \code{x}, returned invisibly.
 \description{
 Prints a fitted \code{regcorr} model: the original call, the estimated
 correlation-link coefficients, and optimization details (number of
-safeguarded Newton iterations, step-halving, and final score norm). Also prints a
+safeguarded Newton iterations, step-halving, and final score norm). Also
+prints a
 \code{summary.regcorr} object: the model type, link function, bootstrap
 standard errors, and the coefficient table with z-statistics and p-values.
 }

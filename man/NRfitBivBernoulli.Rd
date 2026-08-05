@@ -4,14 +4,7 @@
 \alias{NRfitBivBernoulli}
 \title{Estimate beta for Bivariate Bernoulli responses using Newton Raphson}
 \usage{
-NRfitBivBernoulli(
-  Y,
-  X,
-  beta0,
-  link,
-  warn = FALSE,
-  control = regcorr_control()
-)
+NRfitBivBernoulli(Y, X, beta0, link, warn = FALSE, control = regcorr_control())
 }
 \arguments{
 \item{Y}{n by 2 matrix, paired responses.}

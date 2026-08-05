@@ -50,8 +50,10 @@ test_that("genDataBB produces valid bivariate binary data", {
                      link = link)
     expect_true(nrow(dat$Y) > 0)
     expect_true(all(dat$Y %in% c(0, 1)))
-    # empirical correlation should be consistent with the modelled rho
-    expect_equal(cor(dat$Y[, 1], dat$Y[, 2]), mean(dat$rho),
-                 tolerance = 0.15)
+    # empirical correlation should be consistent with the modelled rho; use
+    # an absolute tolerance because expect_equal()'s tolerance is relative
+    # (15% of mean rho ~ 0.5 allows only ~0.075 slack, tighter than the
+    # sampling noise from ~300 retained rows)
+    expect_lt(abs(cor(dat$Y[, 1], dat$Y[, 2]) - mean(dat$rho)), 0.15)
   }
 })
