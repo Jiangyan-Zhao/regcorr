@@ -40,7 +40,8 @@ before fitting, and the dropped rows are recorded in the
 \code{na.action} component of the returned object. The fitting routine
 itself does not support missing values.}
 
-\item{control}{Numerical controls created by \code{\link{regcorr_control}}. A named
+\item{control}{Numerical controls created by
+\code{\link{regcorr_control}}. A named
 list containing a subset of those controls is also accepted.}
 }
 \value{
@@ -51,13 +52,25 @@ An object of class \code{"regcorr_normal"} or
   \itemize{
     \item \code{converged}: whether both the relative coefficient-change
       and score tolerances were met;
+    \item \code{point.objective.valid}: whether the optimizer established a
+      finite, model-domain-valid final objective state;
+    \item \code{margins}: fitted nuisance-model quantities retained for
+      inference. Normal fits contain marginal coefficients, residual scales,
+      and residuals; binary fits contain both marginal-logistic coefficient
+      vectors, fitted probabilities, and convergence/separation diagnostics;
     \item \code{gradient.norm}, \code{step.size}, and
       \code{convergence.message}: final optimizer diagnostics;
+    \item \code{xlevels} and \code{contrasts}: training factor levels and
+      contrast specifications used to construct compatible prediction design
+      matrices;
     \item \code{na.action}: the \code{na.action} used (or \code{NULL});
     \item \code{nboot.valid}: the number of bootstrap replications
       retained after discarding non-converged and errored fits;
     \item \code{nboot.failed}, \code{nboot.nonconverged}, and
       \code{nboot.errors}: bootstrap failure diagnostics.
+    \item \code{bootstrap.skipped} and \code{bootstrap.skip.reason}:
+      whether requested bootstrap inference was skipped because the point
+      objective was invalid, and the corresponding reason.
   }
 }
 \description{

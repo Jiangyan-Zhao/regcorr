@@ -38,6 +38,9 @@ print.regcorr <- function(x, ...) {
   print(x$coefficients)
   cat("\nOptimization: Iterations =", x$numIter, "| Restarts =", x$restart,
       if (isFALSE(x$converged)) "| NOT CONVERGED", "\n")
+  if (isFALSE(x$point.objective.valid)) {
+    cat("Final objective state: INVALID\n")
+  }
   cat("Final score norm =", format(x$gradient.norm, digits = 4),
       "| Last step size =", format(x$step.size, digits = 4),
       "| Step halvings =", x$num.halving, "\n")
@@ -53,7 +56,13 @@ print.summary.regcorr <- function(x, ...) {
   cat("\nCall:\n", paste(deparse(x$call), sep = "\n", collapse = "\n"), "\n\n", sep = "")
   cat("Model Type   :", x$class, "\n")
   cat("Link Function:", x$link, "\n")
-  if (x$nboot > 0) {
+  if (isTRUE(x$bootstrap.skipped)) {
+    cat("Bootstrap S.E.: skipped\n")
+    if (!is.null(x$bootstrap.skip.reason)) {
+      cat("Reason:", x$bootstrap.skip.reason, "\n")
+    }
+    cat("\n")
+  } else if (x$nboot > 0) {
     cat("Bootstrap S.E. (nboot = ", x$nboot, sep = "")
     if (!is.null(x$nboot.valid) && x$nboot.valid < x$nboot) {
       cat(", valid = ", x$nboot.valid,

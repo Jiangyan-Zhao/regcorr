@@ -4,7 +4,8 @@
 #' fitted \code{regcorr} model. With \code{newdata = NULL} the fitted
 #' correlations for the training data are returned; otherwise the
 #' correlations are computed for the covariate values in \code{newdata}
-#' using the inverse of the model's link function.
+#' using the inverse of the model's link function. Prediction model matrices
+#' reuse the factor levels and contrasts recorded during fitting.
 #'
 #' @param object An object of class \code{"regcorr"}.
 #' @param newdata Optional data frame containing the covariate values for
@@ -48,8 +49,53 @@ predict.regcorr <- function(object, newdata = NULL, ...) {
 
   tt <- delete.response(object$terms)
   # keep incomplete rows so predictions align with newdata; they become NA
-  mf <- model.frame(tt, newdata, na.action = stats::na.pass)
-  X_new <- model.matrix(tt, mf)
+  mf <- tryCatch(
+    model.frame(
+      tt, newdata, na.action = stats::na.pass, xlev = object$xlevels
+    ),
+    error = function(e) {
+      stop(
+        "Cannot construct the prediction model frame from `newdata`: ",
+        conditionMessage(e),
+        call. = FALSE
+      )
+    }
+  )
+  X_new <- tryCatch(
+    model.matrix(tt, mf, contrasts.arg = object$contrasts),
+    error = function(e) {
+      stop(
+        "Cannot construct a training-compatible prediction design matrix: ",
+        conditionMessage(e),
+        call. = FALSE
+      )
+    }
+  )
+
+  expected_columns <- names(object$coefficients)
+  if (is.null(expected_columns)) expected_columns <- colnames(object$x)
+  missing_columns <- setdiff(expected_columns, colnames(X_new))
+  extra_columns <- setdiff(colnames(X_new), expected_columns)
+  if (length(expected_columns) != ncol(X_new) || length(missing_columns) ||
+      length(extra_columns)) {
+    stop(
+      "The prediction design matrix is incompatible with the training ",
+      "design matrix",
+      if (length(missing_columns)) paste0(
+        "; missing column(s): ", paste(missing_columns, collapse = ", ")
+      ) else "",
+      if (length(extra_columns)) paste0(
+        "; unexpected column(s): ", paste(extra_columns, collapse = ", ")
+      ) else "",
+      ".",
+      call. = FALSE
+    )
+  }
+  X_new <- X_new[, expected_columns, drop = FALSE]
+
+  if (isFALSE(object$point.objective.valid)) {
+    return(rep(NA_real_, nrow(X_new)))
+  }
 
   link_code <- if (object$link %in% c("logistic", "1")) "1" else "2"
 
