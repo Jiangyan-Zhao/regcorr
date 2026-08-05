@@ -66,7 +66,7 @@ NRfitBivNormal <- function(Y, X, betaIni, link)
     uvw <- u * T1 + v * T2 + w                         # n by 1
 
     score <- t(X) %*% abc                              # p by 1
-    H <- t(X) %*% diag(as.vector(uvw)) %*% X           # p by p
+    H <- crossprod(X, X * as.vector(uvw))               # p by p
 
     ill_posed <- any(!is.finite(betaCurrent)) || any(!is.finite(score)) ||
       any(!is.finite(H)) || sqrt(sum(betaCurrent^2)) > 10 || kappa(H) > 10000
@@ -208,7 +208,7 @@ NRfitBivBernoulli <- function(Y, X, beta0, link, warn = FALSE)
 
     w <- I00 * f00 + I01 * f01 + I10 * f10 + I11 * f11   # n by 1
 
-    H <- t(X) %*% diag(as.vector(w)) %*% X               # p by p
+    H <- crossprod(X, X * as.vector(w))                   # p by p
 
     ill_posed <- any(!is.finite(betaCurrent)) || any(!is.finite(score)) ||
       any(!is.finite(H)) || sqrt(sum(betaCurrent^2)) > 10 || kappa(H) > 10000
