@@ -12,41 +12,68 @@
   }
 }
 
-.bootstrap_fit_is_valid <- function(fit, type, p, control) {
-  if (!is.list(fit) || !isTRUE(fit$converged) ||
-      length(fit$betaCurrent) != p || any(!is.finite(fit$betaCurrent)) ||
-      length(fit$logLik) != 1L || !is.finite(fit$logLik)) {
+.fit_has_valid_objective_state <- function(fit, type, n, p, control) {
+  if (!is.list(fit) || length(fit$betaCurrent) != p ||
+      any(!is.finite(fit$betaCurrent)) || length(fit$logLik) != 1L ||
+      !is.finite(fit$logLik) || length(fit$rho) != n ||
+      any(!is.finite(fit$rho))) {
     return(FALSE)
   }
 
   if (type == "normal") {
-    return(length(fit$rho) > 0L && all(is.finite(fit$rho)) &&
-             all(abs(fit$rho) < 1 - control$boundary_eps))
+    return(all(abs(fit$rho) < 1 - control$boundary_eps))
   }
 
-  length(fit$minJointProbability) == 1L &&
+  all(abs(fit$rho) < 1 - control$boundary_eps) &&
+    length(fit$minJointProbability) == 1L &&
     is.finite(fit$minJointProbability) &&
     fit$minJointProbability > control$boundary_eps
 }
 
-.bootstrap_regcorr <- function(Y, X, nboot, type, init, link, control,
-                               fit_fun = .fit_regcorr_engine) {
+.bootstrap_fit_is_valid <- function(fit, type, n, p, control) {
+  isTRUE(fit$converged) &&
+    .fit_has_valid_objective_state(
+      fit, type = type, n = n, p = p, control = control
+    )
+}
+
+.empty_bootstrap_result <- function(X, nboot = 0L, skipped = FALSE,
+                                    reason = NULL) {
   p <- ncol(X)
   coefficient_names <- colnames(X)
   vcov_matrix <- matrix(
     NA_real_, p, p,
     dimnames = list(coefficient_names, coefficient_names)
   )
-  if (nboot == 0L) {
-    return(list(
-      vcov = vcov_matrix,
-      nboot.valid = 0L,
-      nboot.failed = 0L,
-      nboot.nonconverged = 0L,
-      nboot.errors = 0L,
-      diagnostics = list(status = character(), error.messages = character())
-    ))
+  status <- if (isTRUE(skipped) && nboot > 0L) {
+    setNames(rep("skipped", nboot), paste0("replicate", seq_len(nboot)))
+  } else {
+    character()
   }
+
+  list(
+    vcov = vcov_matrix,
+    nboot.valid = 0L,
+    nboot.failed = 0L,
+    nboot.nonconverged = 0L,
+    nboot.errors = 0L,
+    diagnostics = list(
+      status = status,
+      error.messages = character(),
+      skipped = isTRUE(skipped),
+      skip.reason = if (isTRUE(skipped)) reason else NULL
+    )
+  )
+}
+
+.bootstrap_regcorr <- function(Y, X, nboot, type, init, link, control,
+                               fit_fun = .fit_regcorr_engine) {
+  p <- ncol(X)
+  coefficient_names <- colnames(X)
+  if (nboot == 0L) {
+    return(.empty_bootstrap_result(X))
+  }
+  vcov_matrix <- .empty_bootstrap_result(X)$vcov
 
   n <- nrow(Y)
   boot_betas <- matrix(NA_real_, nboot, p)
@@ -70,7 +97,9 @@
     if (inherits(boot_fit, "error")) {
       status[i] <- "error"
       error_messages[i] <- conditionMessage(boot_fit)
-    } else if (.bootstrap_fit_is_valid(boot_fit, type, p, control)) {
+    } else if (.bootstrap_fit_is_valid(
+      boot_fit, type, n = n, p = p, control = control
+    )) {
       status[i] <- "valid"
       boot_betas[i, ] <- as.vector(boot_fit$betaCurrent)
     }
@@ -119,7 +148,9 @@
     nboot.errors = as.integer(nboot_errors),
     diagnostics = list(
       status = status,
-      error.messages = error_messages
+      error.messages = error_messages,
+      skipped = FALSE,
+      skip.reason = NULL
     )
   )
 }

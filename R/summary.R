@@ -27,6 +27,11 @@
 #'     \item{nboot.nonconverged}{number of optimizer non-convergences;}
 #'     \item{nboot.errors}{number of bootstrap replications that raised an
 #'       error;}
+#'     \item{bootstrap.skipped}{whether requested bootstrap inference was
+#'       skipped because the point estimator had no valid final objective
+#'       state;}
+#'     \item{bootstrap.skip.reason}{the reason bootstrap inference was skipped,
+#'       or \code{NULL};}
 #'     \item{converged}{whether the Newton-Raphson iterations converged;}
 #'     \item{class}{the model class (\code{"regcorr_normal"} or
 #'       \code{"regcorr_binary"}).}
@@ -80,6 +85,8 @@ summary.regcorr <- function(object, ...) {
     nboot.failed = object$nboot.failed,
     nboot.nonconverged = object$nboot.nonconverged,
     nboot.errors = object$nboot.errors,
+    bootstrap.skipped = isTRUE(object$bootstrap.skipped),
+    bootstrap.skip.reason = object$bootstrap.skip.reason,
     class        = class(object)[1]
   )
   class(res) <- "summary.regcorr"

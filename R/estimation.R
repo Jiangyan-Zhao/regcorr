@@ -19,8 +19,27 @@
     ))
   }
 
-  residual <- marginal_fit$residuals
+  response_names <- colnames(Y)
+  if (is.null(response_names) || length(response_names) != 2L ||
+      any(!nzchar(response_names))) {
+    response_names <- c("response1", "response2")
+  }
+  coefficient_names <- colnames(X)
+  if (is.null(coefficient_names) || length(coefficient_names) != ncol(X)) {
+    coefficient_names <- paste0("X", seq_len(ncol(X)))
+  }
+
+  coefficients <- as.matrix(marginal_fit$coefficients)
+  dimnames(coefficients) <- list(coefficient_names, response_names)
+  residual <- as.matrix(marginal_fit$residuals)
+  dimnames(residual) <- list(rownames(Y), response_names)
   sigma_hat <- sqrt(colMeans(residual^2))
+  names(sigma_hat) <- response_names
+  margins <- list(
+    coefficients = coefficients,
+    sigma = sigma_hat,
+    residuals = residual
+  )
   scale_tol <- sqrt(.Machine$double.eps)
   if (any(!is.finite(residual)) || any(!is.finite(sigma_hat)) ||
       any(sigma_hat <= scale_tol)) {
@@ -29,7 +48,8 @@
       message = paste0(
         "Normal marginal residual scales are zero or non-finite; ",
         "the correlation likelihood is not estimable."
-      )
+      ),
+      margins = margins
     ))
   }
 
@@ -38,7 +58,8 @@
     ok = TRUE,
     sigma = sigma_hat,
     T1 = rowSums(y_tilde^2),
-    T2 = y_tilde[, 1L] * y_tilde[, 2L]
+    T2 = y_tilde[, 1L] * y_tilde[, 2L],
+    margins = margins
   )
 }
 
@@ -259,9 +280,36 @@
 
   p1 <- as.vector(fits$fit1$fitted.values)
   p2 <- as.vector(fits$fit2$fitted.values)
-  separated <- !isTRUE(fits$fit1$converged) || !isTRUE(fits$fit2$converged) ||
+  response_names <- colnames(Y)
+  if (is.null(response_names) || length(response_names) != 2L ||
+      any(!nzchar(response_names))) {
+    response_names <- c("response1", "response2")
+  }
+  coefficient_names <- colnames(X)
+  if (is.null(coefficient_names) || length(coefficient_names) != ncol(X)) {
+    coefficient_names <- paste0("X", seq_len(ncol(X)))
+  }
+  coefficients1 <- as.vector(fits$fit1$coefficients)
+  coefficients2 <- as.vector(fits$fit2$coefficients)
+  names(coefficients1) <- coefficient_names
+  names(coefficients2) <- coefficient_names
+  marginal_convergence <- c(
+    isTRUE(fits$fit1$converged),
+    isTRUE(fits$fit2$converged)
+  )
+  names(marginal_convergence) <- response_names
+
+  separated <- !all(marginal_convergence) ||
     any(p1 <= 1e-8) || any(p1 >= 1 - 1e-8) ||
     any(p2 <= 1e-8) || any(p2 >= 1 - 1e-8)
+  margins <- list(
+    coefficients1 = coefficients1,
+    coefficients2 = coefficients2,
+    fitted1 = p1,
+    fitted2 = p2,
+    converged = marginal_convergence,
+    separated = separated
+  )
 
   if (warn && separated) {
     warning(
@@ -281,11 +329,15 @@
         "Marginal logistic fitted probabilities are non-finite or on the ",
         "boundary; the correlation likelihood is not estimable."
       ),
-      separated = separated
+      separated = separated,
+      margins = margins
     ))
   }
 
-  list(ok = TRUE, p1 = p1, p2 = p2, separated = separated)
+  list(
+    ok = TRUE, p1 = p1, p2 = p2, separated = separated,
+    margins = margins
+  )
 }
 
 .safe_condition_number <- function(hessian) {
@@ -335,11 +387,14 @@
   )
 }
 
-.find_admissible_start <- function(beta, anchor, evaluate, control) {
-  initial_state <- tryCatch(
-    evaluate(beta),
-    error = function(e) .invalid_objective(conditionMessage(e))
-  )
+.find_admissible_start <- function(beta, anchor, evaluate, control,
+                                   initial_state = NULL) {
+  if (is.null(initial_state)) {
+    initial_state <- tryCatch(
+      evaluate(beta),
+      error = function(e) .invalid_objective(conditionMessage(e))
+    )
+  }
   if (isTRUE(initial_state$valid)) {
     return(list(ok = TRUE, beta = beta, state = initial_state,
                 adjusted = FALSE))
@@ -379,6 +434,41 @@
   }
 
   list(ok = TRUE, beta = anchor, state = anchor_state, adjusted = TRUE)
+}
+
+.find_bernoulli_start <- function(beta, evaluate, anchor_fun, control) {
+  initial_state <- tryCatch(
+    evaluate(beta),
+    error = function(e) .invalid_objective(conditionMessage(e))
+  )
+  if (isTRUE(initial_state$valid)) {
+    return(list(
+      ok = TRUE, beta = beta, state = initial_state, adjusted = FALSE
+    ))
+  }
+
+  anchor <- tryCatch(anchor_fun(), error = function(e) NULL)
+  if (is.null(anchor)) {
+    return(list(
+      ok = FALSE,
+      beta = beta,
+      state = initial_state,
+      adjusted = FALSE,
+      message = paste0(
+        "The supplied initial value is inadmissible, and no numerically ",
+        "interior Bernoulli fallback anchor could be found."
+      )
+    ))
+  }
+
+  .find_admissible_start(
+    beta, anchor, evaluate, control, initial_state = initial_state
+  )
+}
+
+.attach_margins <- function(fit, margins) {
+  fit$margins <- margins
+  fit
 }
 
 .newton_optimize <- function(beta, evaluate, control, state = NULL,
@@ -589,14 +679,18 @@
 #' @param link Indicator of link function ("1" = logistic, "2" = tanh).
 #' @param control Numerical controls from \code{\link{regcorr_control}}.
 #' @return A list containing the coefficient estimate, convergence status,
-#'   iteration diagnostics, final score norm, accepted step size, and message.
+#'   iteration diagnostics, final score norm, accepted step size, message, and
+#'   fitted marginal nuisance quantities in \code{margins}.
 #' @importFrom stats lm.fit
 NRfitBivNormal <- function(Y, X, betaIni, link,
                            control = regcorr_control()) {
   control <- .validate_regcorr_control(control)
   marginal <- .normal_marginal_statistics(Y, X)
   if (!isTRUE(marginal$ok)) {
-    return(.failed_optimizer_result(betaIni, marginal$message))
+    return(.attach_margins(
+      .failed_optimizer_result(betaIni, marginal$message),
+      marginal$margins
+    ))
   }
 
   evaluate <- function(beta) {
@@ -609,12 +703,18 @@ NRfitBivNormal <- function(Y, X, betaIni, link,
     betaIni, rep(0, ncol(X)), evaluate, control
   )
   if (!isTRUE(start$ok)) {
-    return(.failed_optimizer_result(betaIni, start$message))
+    return(.attach_margins(
+      .failed_optimizer_result(betaIni, start$message),
+      marginal$margins
+    ))
   }
 
-  .newton_optimize(
-    start$beta, evaluate, control, state = start$state,
-    start_adjusted = start$adjusted
+  .attach_margins(
+    .newton_optimize(
+      start$beta, evaluate, control, state = start$state,
+      start_adjusted = start$adjusted
+    ),
+    marginal$margins
   )
 }
 
@@ -627,14 +727,18 @@ NRfitBivNormal <- function(Y, X, betaIni, link,
 #' @param warn Whether to warn when marginal logistic fits exhibit separation.
 #' @param control Numerical controls from \code{\link{regcorr_control}}.
 #' @return A list containing the coefficient estimate, convergence status,
-#'   iteration diagnostics, final score norm, accepted step size, and message.
+#'   iteration diagnostics, final score norm, accepted step size, message, and
+#'   fitted marginal nuisance quantities in \code{margins}.
 #' @importFrom stats glm.fit binomial
 NRfitBivBernoulli <- function(Y, X, beta0, link, warn = FALSE,
                               control = regcorr_control()) {
   control <- .validate_regcorr_control(control)
   marginal <- .fit_bernoulli_margins(Y, X, warn = warn)
   if (!isTRUE(marginal$ok)) {
-    return(.failed_optimizer_result(beta0, marginal$message))
+    return(.attach_margins(
+      .failed_optimizer_result(beta0, marginal$message),
+      marginal$margins
+    ))
   }
 
   likelihood_data <- .bernoulli_likelihood_data(
@@ -646,26 +750,28 @@ NRfitBivBernoulli <- function(Y, X, beta0, link, warn = FALSE,
       boundary_eps = control$boundary_eps
     )
   }
-  anchor <- .bernoulli_anchor(
-    X, likelihood_data, link, control$boundary_eps
-  )
-  if (is.null(anchor)) {
-    return(.failed_optimizer_result(
-      beta0,
-      paste0(
-        "No numerically interior Bernoulli starting value could be found ",
-        "for the fitted marginal probabilities."
+  start <- .find_bernoulli_start(
+    beta0,
+    evaluate,
+    anchor_fun = function() {
+      .bernoulli_anchor(
+        X, likelihood_data, link, control$boundary_eps
       )
+    },
+    control = control
+  )
+  if (!isTRUE(start$ok)) {
+    return(.attach_margins(
+      .failed_optimizer_result(beta0, start$message),
+      marginal$margins
     ))
   }
 
-  start <- .find_admissible_start(beta0, anchor, evaluate, control)
-  if (!isTRUE(start$ok)) {
-    return(.failed_optimizer_result(beta0, start$message))
-  }
-
-  .newton_optimize(
-    start$beta, evaluate, control, state = start$state,
-    start_adjusted = start$adjusted
+  .attach_margins(
+    .newton_optimize(
+      start$beta, evaluate, control, state = start$state,
+      start_adjusted = start$adjusted
+    ),
+    marginal$margins
   )
 }

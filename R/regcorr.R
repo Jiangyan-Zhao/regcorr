@@ -35,13 +35,25 @@
 #'   \itemize{
 #'     \item \code{converged}: whether both the relative coefficient-change
 #'       and score tolerances were met;
+#'     \item \code{point.objective.valid}: whether the optimizer established a
+#'       finite, model-domain-valid final objective state;
+#'     \item \code{margins}: fitted nuisance-model quantities retained for
+#'       inference. Normal fits contain marginal coefficients, residual scales,
+#'       and residuals; binary fits contain both marginal-logistic coefficient
+#'       vectors, fitted probabilities, and convergence/separation diagnostics;
 #'     \item \code{gradient.norm}, \code{step.size}, and
 #'       \code{convergence.message}: final optimizer diagnostics;
+#'     \item \code{xlevels} and \code{contrasts}: training factor levels and
+#'       contrast specifications used to construct compatible prediction design
+#'       matrices;
 #'     \item \code{na.action}: the \code{na.action} used (or \code{NULL});
 #'     \item \code{nboot.valid}: the number of bootstrap replications
 #'       retained after discarding non-converged and errored fits;
 #'     \item \code{nboot.failed}, \code{nboot.nonconverged}, and
 #'       \code{nboot.errors}: bootstrap failure diagnostics.
+#'     \item \code{bootstrap.skipped} and \code{bootstrap.skip.reason}:
+#'       whether requested bootstrap inference was skipped because the point
+#'       objective was invalid, and the corresponding reason.
 #'   }
 #'
 #' @examples
@@ -93,6 +105,8 @@ regcorr <- function(formula, data = NULL,
   Y <- model.response(mf, "numeric")
   X <- model.matrix(mt, mf)
   na_action <- attr(mf, "na.action")
+  xlevels <- stats::.getXlevels(mt, mf)
+  contrasts <- attr(X, "contrasts")
 
   if (is.null(Y) || NCOL(Y) != 2) {
     stop("The response must be a 2-column matrix, e.g., cbind(y1, y2) ~ x1 + x2",
@@ -140,8 +154,18 @@ regcorr <- function(formula, data = NULL,
   names(coefficients) <- colnames(X)
   final_score <- as.vector(fit$finalScore)
   names(final_score) <- colnames(X)
+  point_objective_valid <- .fit_has_valid_objective_state(
+    fit, type = type_arg, n = nrow(X), p = p, control = control
+  )
 
-  if (!isTRUE(fit$converged)) {
+  if (!point_objective_valid) {
+    warning(
+      "Point estimator did not establish a valid final objective state",
+      if (nboot > 0L) "; bootstrap inference was skipped" else "",
+      ". ", fit$convergenceMessage,
+      call. = FALSE
+    )
+  } else if (!isTRUE(fit$converged)) {
     warning("Safeguarded Newton estimation did not converge after ",
             fit$numIter, " iteration(s): ", fit$convergenceMessage,
             " The reported coefficients may be unreliable.",
@@ -149,21 +173,37 @@ regcorr <- function(formula, data = NULL,
   }
 
   # --- bootstrap variance ---
-  bootstrap <- .bootstrap_regcorr(
-    Y = Y, X = X, nboot = nboot, type = type_arg, init = init,
-    link = link_code, control = control
-  )
+  bootstrap <- if (point_objective_valid) {
+    .bootstrap_regcorr(
+      Y = Y, X = X, nboot = nboot, type = type_arg, init = init,
+      link = link_code, control = control
+    )
+  } else {
+    .empty_bootstrap_result(
+      X = X,
+      nboot = nboot,
+      skipped = nboot > 0L,
+      reason = paste0(
+        "The point estimator did not establish a valid final objective state: ",
+        fit$convergenceMessage
+      )
+    )
+  }
 
   # --- fitted correlations ---
-  rho_fitted <- switch(link_code,
-                       "1" = logistic(X %*% coefficients),
-                       "2" = tanh(X %*% coefficients))
+  rho_fitted <- if (point_objective_valid) {
+    as.vector(fit$rho)
+  } else {
+    rep(NA_real_, nrow(X))
+  }
 
   res <- list(
     coefficients = coefficients,
     vcov         = bootstrap$vcov,
     fitted.rho   = as.vector(rho_fitted),
     type         = type_arg,
+    point.objective.valid = point_objective_valid,
+    margins      = fit$margins,
     numIter      = fit$numIter,
     restart      = fit$restart,
     converged    = fit$converged,
@@ -184,10 +224,14 @@ regcorr <- function(formula, data = NULL,
     nboot.nonconverged = bootstrap$nboot.nonconverged,
     nboot.errors = bootstrap$nboot.errors,
     bootstrap.diagnostics = bootstrap$diagnostics,
+    bootstrap.skipped = isTRUE(bootstrap$diagnostics$skipped),
+    bootstrap.skip.reason = bootstrap$diagnostics$skip.reason,
     control      = control,
     call         = call,
     terms        = mt,
     model        = mf,
+    xlevels      = xlevels,
+    contrasts    = contrasts,
     na.action    = na_action,
     x            = X,
     y            = Y

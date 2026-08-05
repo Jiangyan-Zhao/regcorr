@@ -21,7 +21,8 @@ NRfitBivBernoulli(Y, X, beta0, link, warn = FALSE, control = regcorr_control())
 }
 \value{
 A list containing the coefficient estimate, convergence status,
-  iteration diagnostics, final score norm, accepted step size, and message.
+  iteration diagnostics, final score norm, accepted step size, message, and
+  fitted marginal nuisance quantities in \code{margins}.
 }
 \description{
 Estimate beta for Bivariate Bernoulli responses using Newton Raphson
