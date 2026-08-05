@@ -46,7 +46,9 @@
     dimnames = list(coefficient_names, coefficient_names)
   )
   status <- if (isTRUE(skipped) && nboot > 0L) {
-    setNames(rep("skipped", nboot), paste0("replicate", seq_len(nboot)))
+    stats::setNames(
+      rep("skipped", nboot), paste0("replicate", seq_len(nboot))
+    )
   } else {
     character()
   }
