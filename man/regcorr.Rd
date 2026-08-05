@@ -11,7 +11,8 @@ regcorr(
   link = c("logistic", "tanh", "1", "2"),
   init = NULL,
   nboot = 100,
-  na.action = getOption("na.action")
+  na.action = getOption("na.action"),
+  control = regcorr_control()
 )
 }
 \arguments{
@@ -38,6 +39,9 @@ values in the data are handled; passed to
 before fitting, and the dropped rows are recorded in the
 \code{na.action} component of the returned object. The fitting routine
 itself does not support missing values.}
+
+\item{control}{Numerical controls created by \code{\link{regcorr_control}}. A named
+list containing a subset of those controls is also accepted.}
 }
 \value{
 An object of class \code{"regcorr_normal"} or
@@ -45,11 +49,15 @@ An object of class \code{"regcorr_normal"} or
   \code{print}, \code{summary}, \code{predict}, \code{coef}, \code{vcov},
   \code{fitted}, \code{nobs}, and \code{plot}. The object also contains
   \itemize{
-    \item \code{converged}: whether the Newton-Raphson iterations
-      converged within the iteration/restart limits;
+    \item \code{converged}: whether both the relative coefficient-change
+      and score tolerances were met;
+    \item \code{gradient.norm}, \code{step.size}, and
+      \code{convergence.message}: final optimizer diagnostics;
     \item \code{na.action}: the \code{na.action} used (or \code{NULL});
     \item \code{nboot.valid}: the number of bootstrap replications
-      retained after discarding non-converged fits.
+      retained after discarding non-converged and errored fits;
+    \item \code{nboot.failed}, \code{nboot.nonconverged}, and
+      \code{nboot.errors}: bootstrap failure diagnostics.
   }
 }
 \description{

@@ -25,9 +25,10 @@ Maintainer: Ze Lin <zlin5858@163.com>
 Description: Regression models to assess the effect of covariates on the
  Pearson correlation coefficient for bivariate normal and bivariate
  binary responses.  The package provides likelihood-based inference
- using Newton-Raphson estimation and bootstrap-based significance
- testing, with robust handling of numerical instabilities in extreme
- samples.  The methodology is based on Dufera, Liu, and Xu (2023)
+ using safeguarded Newton-Raphson estimation with deterministic step-halving
+ and bootstrap-based significance testing, with explicit handling of
+ numerical instabilities and infeasible binary joint probabilities.  The
+ methodology is based on Dufera, Liu, and Xu (2023)
  "Regression models of Pearson correlation coefficient"
  <doi:10.1080/24754269.2023.2164970>.
 License: GPL (>= 3)

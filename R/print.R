@@ -2,7 +2,8 @@
 #'
 #' Prints a fitted \code{regcorr} model: the original call, the estimated
 #' correlation-link coefficients, and optimization details (number of
-#' Newton-Raphson iterations and restarts). Also prints a
+#' safeguarded Newton iterations, step-halving, and final score norm). Also
+#' prints a
 #' \code{summary.regcorr} object: the model type, link function, bootstrap
 #' standard errors, and the coefficient table with z-statistics and p-values.
 #'
@@ -37,6 +38,12 @@ print.regcorr <- function(x, ...) {
   print(x$coefficients)
   cat("\nOptimization: Iterations =", x$numIter, "| Restarts =", x$restart,
       if (isFALSE(x$converged)) "| NOT CONVERGED", "\n")
+  cat("Final score norm =", format(x$gradient.norm, digits = 4),
+      "| Last step size =", format(x$step.size, digits = 4),
+      "| Step halvings =", x$num.halving, "\n")
+  if (isFALSE(x$converged)) {
+    cat("Reason:", x$convergence.message, "\n")
+  }
   invisible(x)
 }
 
@@ -49,7 +56,9 @@ print.summary.regcorr <- function(x, ...) {
   if (x$nboot > 0) {
     cat("Bootstrap S.E. (nboot = ", x$nboot, sep = "")
     if (!is.null(x$nboot.valid) && x$nboot.valid < x$nboot) {
-      cat(", valid = ", x$nboot.valid, ")", sep = "")
+      cat(", valid = ", x$nboot.valid,
+          ", non-converged = ", x$nboot.nonconverged,
+          ", errors = ", x$nboot.errors, ")", sep = "")
     } else {
       cat(")", sep = "")
     }
@@ -64,5 +73,9 @@ print.summary.regcorr <- function(x, ...) {
   cat("\n---")
   cat("\nConvergence info: Iterations =", x$numIter, "| Restarts =", x$restart,
       "| Converged =", if (isTRUE(x$converged)) "TRUE" else "FALSE", "\n")
+  cat("Final score norm =", format(x$gradient.norm, digits = 4),
+      "| Last step size =", format(x$step.size, digits = 4),
+      "| Step halvings =", x$num.halving, "\n")
+  cat("Reason:", x$convergence.message, "\n")
   invisible(x)
 }

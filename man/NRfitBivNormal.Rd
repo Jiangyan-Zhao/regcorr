@@ -4,7 +4,7 @@
 \alias{NRfitBivNormal}
 \title{Estimate beta for Bivariate Normal responses using Newton Raphson}
 \usage{
-NRfitBivNormal(Y, X, betaIni, link)
+NRfitBivNormal(Y, X, betaIni, link, control = regcorr_control())
 }
 \arguments{
 \item{Y}{n by 2 matrix, paired responses.}
@@ -14,10 +14,12 @@ NRfitBivNormal(Y, X, betaIni, link)
 \item{betaIni}{Initial estimate of beta.}
 
 \item{link}{Indicator of link function ("1" = logistic, "2" = tanh).}
+
+\item{control}{Numerical controls from \code{\link{regcorr_control}}.}
 }
 \value{
-A list containing betaCurrent, numIter, restart, and converged
-  (whether the iterations converged within the iteration/restart limits).
+A list containing the coefficient estimate, convergence status,
+  iteration diagnostics, final score norm, accepted step size, and message.
 }
 \description{
 Estimate beta for Bivariate Normal responses using Newton Raphson

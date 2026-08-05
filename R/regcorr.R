@@ -24,17 +24,24 @@
 #'   before fitting, and the dropped rows are recorded in the
 #'   \code{na.action} component of the returned object. The fitting routine
 #'   itself does not support missing values.
+#' @param control Numerical controls created by
+#'   \code{\link{regcorr_control}}. A named
+#'   list containing a subset of those controls is also accepted.
 #'
 #' @return An object of class \code{"regcorr_normal"} or
 #'   \code{"regcorr_binary"} (and \code{"regcorr"}), with S3 methods
 #'   \code{print}, \code{summary}, \code{predict}, \code{coef}, \code{vcov},
 #'   \code{fitted}, \code{nobs}, and \code{plot}. The object also contains
 #'   \itemize{
-#'     \item \code{converged}: whether the Newton-Raphson iterations
-#'       converged within the iteration/restart limits;
+#'     \item \code{converged}: whether both the relative coefficient-change
+#'       and score tolerances were met;
+#'     \item \code{gradient.norm}, \code{step.size}, and
+#'       \code{convergence.message}: final optimizer diagnostics;
 #'     \item \code{na.action}: the \code{na.action} used (or \code{NULL});
 #'     \item \code{nboot.valid}: the number of bootstrap replications
-#'       retained after discarding non-converged fits.
+#'       retained after discarding non-converged and errored fits;
+#'     \item \code{nboot.failed}, \code{nboot.nonconverged}, and
+#'       \code{nboot.errors}: bootstrap failure diagnostics.
 #'   }
 #'
 #' @examples
@@ -56,8 +63,17 @@ regcorr <- function(formula, data = NULL,
                     type = c("auto", "normal", "binary"),
                     link = c("logistic", "tanh", "1", "2"),
                     init = NULL, nboot = 100,
-                    na.action = getOption("na.action")) {
+                    na.action = getOption("na.action"),
+                    control = regcorr_control()) {
   call <- match.call()
+  control <- .validate_regcorr_control(control)
+
+  if (!is.numeric(nboot) || length(nboot) != 1L || is.na(nboot) ||
+      !is.finite(nboot) || nboot < 0 || nboot > .Machine$integer.max ||
+      nboot != floor(nboot)) {
+    stop("`nboot` must be one non-negative whole number.", call. = FALSE)
+  }
+  nboot <- as.integer(nboot)
 
   # --- link ---
   link_arg <- match.arg(link)
@@ -88,11 +104,19 @@ regcorr <- function(formula, data = NULL,
          "incomplete rows.",
          call. = FALSE)
   }
+  if (!is.numeric(Y) || any(!is.finite(Y)) || any(!is.finite(X))) {
+    stop("The response and covariates must contain only finite numeric values.",
+         call. = FALSE)
+  }
 
   # --- model type ---
   type_arg <- match.arg(type)
   if (type_arg == "auto") {
     type_arg <- if (all(Y %in% c(0, 1))) "binary" else "normal"
+  }
+  if (type_arg == "binary" && !all(Y %in% c(0, 1))) {
+    stop("For `type = \"binary\"`, both response columns must contain only 0 and 1.",
+         call. = FALSE)
   }
 
   # --- initial values ---
@@ -102,67 +126,33 @@ regcorr <- function(formula, data = NULL,
     stop("`init` must have length ", p, ", but has length ", length(init),
          call. = FALSE)
   }
-
-  # --- point estimate via Newton-Raphson ---
-  if (type_arg == "normal") {
-    fit <- NRfitBivNormal(Y = Y, X = X, betaIni = init, link = link_code)
-  } else {
-    fit <- NRfitBivBernoulli(Y = Y, X = X, beta0 = init, link = link_code,
-                             warn = TRUE)
+  if (!is.numeric(init) || any(!is.finite(init))) {
+    stop("`init` must contain only finite numeric values.", call. = FALSE)
   }
+  init <- as.vector(init)
+
+  # --- point estimate via safeguarded Newton-Raphson ---
+  fit <- .fit_regcorr_engine(
+    Y = Y, X = X, type = type_arg, init = init, link = link_code,
+    control = control, warn = TRUE
+  )
   coefficients <- as.vector(fit$betaCurrent)
   names(coefficients) <- colnames(X)
+  final_score <- as.vector(fit$finalScore)
+  names(final_score) <- colnames(X)
 
   if (!isTRUE(fit$converged)) {
-    warning("Newton-Raphson estimation did not converge after ", fit$numIter,
-            " iteration(s) and ", fit$restart, " restart(s); the reported ",
-            "coefficients may be unreliable.",
+    warning("Safeguarded Newton estimation did not converge after ",
+            fit$numIter, " iteration(s): ", fit$convergenceMessage,
+            " The reported coefficients may be unreliable.",
             call. = FALSE)
   }
 
   # --- bootstrap variance ---
-  vcov_mat <- matrix(NA, p, p)
-  nboot_valid <- 0L
-  if (nboot > 0) {
-    n <- nrow(Y)
-    boot_betas <- matrix(0, nboot, p)
-    boot_ok <- logical(nboot)
-    for (i in seq_len(nboot)) {
-      idx <- sample(n, replace = TRUE)
-      if (type_arg == "normal") {
-        boot_fit <- NRfitBivNormal(Y = Y[idx, , drop = FALSE],
-                                   X = X[idx, , drop = FALSE],
-                                   betaIni = init, link = link_code)
-      } else {
-        boot_fit <- NRfitBivBernoulli(Y = Y[idx, , drop = FALSE],
-                                      X = X[idx, , drop = FALSE],
-                                      beta0 = init, link = link_code,
-                                      warn = FALSE)
-      }
-      boot_betas[i, ] <- as.vector(boot_fit$betaCurrent)
-      # discard replications that did not converge or did not move from init
-      boot_ok[i] <- isTRUE(boot_fit$converged) &&
-        sum(abs(boot_betas[i, ] - init)) >= 0.01
-    }
-    nboot_valid <- sum(boot_ok)
-    if (nboot_valid > p + 1) {
-      vcov_mat <- stats::cov(boot_betas[boot_ok, , drop = FALSE])
-      colnames(vcov_mat) <- rownames(vcov_mat) <- colnames(X)
-    }
-    if (nboot_valid < nboot) {
-      if (nboot_valid <= p + 1) {
-        warning("Only ", nboot_valid, " of ", nboot, " bootstrap ",
-                "replications were usable; too few to estimate the ",
-                "variance-covariance matrix (set to NA).",
-                call. = FALSE)
-      } else {
-        warning(nboot - nboot_valid, " of ", nboot, " bootstrap ",
-                "replications were discarded (non-convergence or no movement ",
-                "from the starting values).",
-                call. = FALSE)
-      }
-    }
-  }
+  bootstrap <- .bootstrap_regcorr(
+    Y = Y, X = X, nboot = nboot, type = type_arg, init = init,
+    link = link_code, control = control
+  )
 
   # --- fitted correlations ---
   rho_fitted <- switch(link_code,
@@ -171,15 +161,30 @@ regcorr <- function(formula, data = NULL,
 
   res <- list(
     coefficients = coefficients,
-    vcov         = vcov_mat,
+    vcov         = bootstrap$vcov,
     fitted.rho   = as.vector(rho_fitted),
     type         = type_arg,
     numIter      = fit$numIter,
     restart      = fit$restart,
     converged    = fit$converged,
+    score        = final_score,
+    gradient.norm = fit$gradientNorm,
+    step.size    = fit$stepSize,
+    relative.change = fit$relativeChange,
+    convergence.message = fit$convergenceMessage,
+    loglik       = fit$logLik,
+    condition.number = fit$conditionNumber,
+    num.halving  = fit$numHalving,
+    start.adjusted = fit$startAdjusted,
+    min.joint.probability = fit$minJointProbability,
     link         = link_arg,
     nboot        = nboot,
-    nboot.valid  = nboot_valid,
+    nboot.valid  = bootstrap$nboot.valid,
+    nboot.failed = bootstrap$nboot.failed,
+    nboot.nonconverged = bootstrap$nboot.nonconverged,
+    nboot.errors = bootstrap$nboot.errors,
+    bootstrap.diagnostics = bootstrap$diagnostics,
+    control      = control,
     call         = call,
     terms        = mt,
     model        = mf,

@@ -3,7 +3,7 @@
 #' @param x A numeric vector.
 #' @return The calculated logistic probability.
 logistic <- function(x){
-  return(1/(1+exp(-x)))
+  return(stats::plogis(x))
 }
 
 #' Generate bivariate binary data

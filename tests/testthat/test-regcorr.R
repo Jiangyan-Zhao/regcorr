@@ -29,6 +29,9 @@ test_that("regcorr fits bivariate normal responses with working methods", {
   s <- summary(fit)
   expect_true(isTRUE(s$converged))
   expect_equal(s$nboot.valid, fit$nboot.valid)
+  expect_equal(s$nboot.failed, fit$nboot.failed)
+  expect_equal(s$gradient.norm, fit$gradient.norm)
+  expect_true(nzchar(s$convergence.message))
 })
 
 test_that("predict returns NA for rows with missing covariates", {
@@ -83,6 +86,9 @@ test_that("nboot = 0 yields NA vcov and no bootstrap", {
 
   expect_true(all(is.na(vcov(fit))))
   expect_equal(fit$nboot.valid, 0)
+  expect_equal(fit$nboot.failed, 0)
+  expect_equal(fit$nboot.nonconverged, 0)
+  expect_equal(fit$nboot.errors, 0)
 })
 
 test_that("bootstrap discards non-converged replications in degenerate binary data", {
@@ -116,4 +122,52 @@ test_that("NR fit reports convergence status", {
   expect_true(isTRUE(fit$converged))
   # print output flags non-convergence when it occurs
   expect_output(print(fit), "Iterations")
+})
+
+test_that("formula interactions and S3 methods remain compatible", {
+  set.seed(77)
+  n <- 500
+  x <- runif(n, -1, 1)
+  g <- factor(sample(c("a", "b"), n, replace = TRUE))
+  eta <- -0.4 + 0.25 * x + 0.2 * (g == "b") - 0.15 * x * (g == "b")
+  rho <- plogis(eta)
+  z1 <- rnorm(n)
+  y1 <- z1
+  y2 <- rho * z1 + sqrt(1 - rho^2) * rnorm(n)
+  dat <- data.frame(y1, y2, x, g)
+
+  fit <- regcorr(
+    cbind(y1, y2) ~ x * g, data = dat, nboot = 0,
+    control = regcorr_control(maxit = 120)
+  )
+  expect_true(fit$converged)
+  expect_equal(
+    names(coef(fit)), c("(Intercept)", "x", "gb", "x:gb")
+  )
+  expect_equal(nobs(fit), n)
+  expect_equal(length(fitted(fit)), n)
+  expect_equal(dim(vcov(fit)), c(4, 4))
+
+  prediction <- predict(
+    fit,
+    newdata = data.frame(x = c(-0.5, 0.5), g = factor(c("a", "b")))
+  )
+  expect_length(prediction, 2)
+  expect_true(all(is.finite(prediction)))
+  expect_s3_class(summary(fit), "summary.regcorr")
+})
+
+test_that("numeric link aliases remain supported", {
+  dat <- make_normal_data(n = 250, seed = 91)
+  fit_logistic <- regcorr(
+    cbind(y1, y2) ~ x, data = dat, link = "1", nboot = 0
+  )
+  fit_tanh <- regcorr(
+    cbind(y1, y2) ~ x, data = dat, link = "2", nboot = 0
+  )
+
+  expect_true(fit_logistic$converged)
+  expect_true(fit_tanh$converged)
+  expect_equal(fit_logistic$link, "1")
+  expect_equal(fit_tanh$link, "2")
 })
